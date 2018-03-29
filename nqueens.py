@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import random
 
+
 class Solver_8_queens:
     cells_count = 64
     best_chromosome = []
