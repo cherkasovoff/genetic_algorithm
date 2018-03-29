@@ -17,7 +17,6 @@ class Solver_8_queens:
         all_fitness = 0
         add_population = []
         new_population = []
-        self.best_chromosome = []
 
         finding_solution = True
         epoch_num = 0
