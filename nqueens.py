@@ -2,6 +2,9 @@
 import random
 
 class Solver_8_queens:
+    cells_count = 64
+    best_chromosome = []
+    best_fitness = 0
 
     def __init__(self, pop_size=300, cross_prob=0.5, mut_prob=0.5):
         self.pop_size = pop_size
@@ -9,190 +12,195 @@ class Solver_8_queens:
         self.mut_prob = mut_prob
 
     def solve(self, min_fitness=1, max_epochs=None):
-        population = []
-        pop_fitness = []
-        parents = []
+        current_population = []
+        current_fitness = []
         all_fitness = 0
-        n = 64
-        best_ind = []
-        best_fitness = 0
-        new_pop = []
+        add_population = []
+        new_population = []
+        self.best_chromosome = []
 
-        gen1_f = []
-        gen2_f = []
-        next_gen = []
+        finding_solution = True
+        epoch_num = 0
 
-        algo_act = True
-        geners = 0
+        current_population = list(self.generate_chromosomes(self.pop_size))
+        current_fitness, all_fitness = self.set_fitness(current_population)
+        self.set_best_value(current_population, current_fitness)
 
-        for x in range(self.pop_size):
-            ind = []
-            for y1 in range(n):
-                ind.append(0)
-            for y2 in range(8):
-                rnd = random.randint(y2 * 8, 7 + 8 * y2)
-                ind[rnd] = 1
-            population.append(ind)
+        while finding_solution:
+            epoch_num += 1
+            new_population.clear()
+            add_population.clear()
 
-        for p in range(len(population)):
-            po = population[p]
-            fitness = self.ffunc(po)
-            pop_fitness.append(fitness)
-            all_fitness += fitness
-        best_fitness = max(pop_fitness)
-        best_ind = population[pop_fitness.index(max(pop_fitness))]
+            add_population = list(self.generate_chromosomes(self.pop_size // 2))
+            add_population += self.get_add_population(current_population, current_fitness, all_fitness)
 
-        while algo_act:
+            new_population = list(self.get_new_generation(current_population, add_population))
 
-            geners += 1
-
-            for x in range(self.pop_size // 2):
-                ind = []
-                for y1 in range(n):
-                    ind.append(0)
-                for y2 in range(8):
-                    rnd = random.randint(y2 * 8, 7 + 8 * y2)
-                    ind[rnd] = 1
-                new_pop.append(ind)
-
-            for x in range(self.pop_size):
-                ind_sel = self.roulette(pop_fitness, all_fitness)
-                parents.append(population[ind_sel])
-
-            for x in range(0, self.pop_size, 2):
-                parent_a = parents[random.randint(1, len(parents) - 1)]
-                parent_b = parents[random.randint(1, len(parents) - 1)]
-                cut_point = random.randint(1, n)
-
-                ran_cross = random.random()
-                if ran_cross < self.cross_prob:
-                    ind_ab = parent_a[:cut_point] + parent_b[cut_point:]
-
-                    ran_mut = random.random()
-                    if ran_mut < self.mut_prob:
-                        gene_position = random.randint(0, n - 1)
-                        ind_mut = self.mutate(ind_ab, gene_position)
-                        ind_ab = ind_mut
-                        new_pop.append(ind_ab)
-                        fitness = self.ffunc(ind_ab)
-
-                ran_cross = random.random()
-                if ran_cross < self.cross_prob:
-                    ind_ba = parent_b[:cut_point] + parent_a[cut_point:]
-
-                    ran_mut = random.random()
-                    if ran_mut < self.mut_prob:
-                        gene_position = random.randint(0, n - 1)
-                        ind_mut = self.mutate(ind_ba, gene_position)
-                        ind_ba = ind_mut
-                        new_pop.append(ind_ba)
-                        fitness = self.ffunc(ind_ba)
-
-            gen1 = list(population)
-            gen1_f.clear()
-            gen2 = list(new_pop)
-            gen2_f.clear()
-            next_gen.clear()
-            for x in range(len(gen1)):
-                gen1_f.append(self.ffunc(gen1[x]))
-            for x in range(len(gen2)):
-                gen2_f.append(self.ffunc(gen2[x]))
-            for x in range(self.pop_size):
-                best_g1 = max(gen1_f) if len(gen1_f) > 0 else 0
-                best_g2 = max(gen2_f) if len(gen2_f) > 0 else 0
-                if best_g2 > best_g1:
-                    ind_index = gen2_f.index(best_g2)
-                    next_ind = gen2[ind_index]
-                    next_gen.append(next_ind)
-                    gen2.remove(next_ind)
-                    gen2_f.remove(gen2_f[ind_index])
-                else:
-                    ind_index = gen1_f.index(best_g1)
-                    next_ind = gen1[ind_index]
-                    next_gen.append(next_ind)
-                    gen1.remove(next_ind)
-                    gen1_f.remove(gen1_f[ind_index])
-
-            population.clear()
-            population = list(next_gen)
-            new_pop.clear()
-            pop_fitness.clear()
-            parents.clear()
+            current_population = list(new_population)
+            current_fitness.clear()
             all_fitness = 0
-            for p in range(len(population)):
-                po = population[p]
-                fitness = self.ffunc(po)
-                pop_fitness.append(fitness)
-                all_fitness += fitness
-            best_fitness = max(pop_fitness)
-            best_ind = population[pop_fitness.index(max(pop_fitness))]
+
+            current_fitness, all_fitness = self.set_fitness(current_population)
+            self.set_best_value(current_population, current_fitness)
 
             if min_fitness is not None and max_epochs is not None:
-                if best_fitness >= min_fitness or geners >= max_epochs:
-                    algo_act = False
+                if self.best_fitness >= min_fitness or epoch_num >= max_epochs:
+                    finding_solution = False
             elif min_fitness is not None:
-                if best_fitness >= min_fitness:
-                    algo_act = False
+                if self.best_fitness >= min_fitness:
+                    finding_solution = False
             elif max_epochs is not None:
-                if geners >= max_epochs:
-                    algo_act = False
+                if epoch_num >= max_epochs:
+                    finding_solution = False
 
-        for x in range(7):
-            best_ind.insert(x + 8 * (x + 1), '\n')
-        for x in range(len(best_ind)):
-            if best_ind[x] == 0:
-                best_ind[x] = '+'
-            elif best_ind[x] == 1:
-                best_ind[x] = 'Q'
-        best_ind = ''.join(best_ind)
-
-        best_fit = best_fitness
-        epoch_num = geners
-        visualization = best_ind
+        best_fit = self.best_fitness
+        visualization = self.get_solution()
         return best_fit, epoch_num, visualization
 
-    def generation(self):
-        pass
+    def generate_chromosomes(self, pop_size):
+        pop_generated = []
 
-    def roulette(self, values, fitness):
-        n_rand = random.random() * fitness
-        sum_fit = 0
+        for i in range(pop_size):
+            chromosome = []
+            for n in range(self.cells_count):
+                chromosome.append(0)
+            for n in range(8):
+                rnd = random.randint(n * 8, 7 + 8 * n)
+                chromosome[rnd] = 1
+            pop_generated.append(chromosome)
+        return pop_generated
+
+    def set_fitness(self, population):
+        fitness = []
+        fitness_sum = 0
+
+        for i in population:
+            fitness_value = self.ffunc(i)
+            fitness.append(fitness_value)
+            fitness_sum += fitness_value
+        return fitness, fitness_sum
+
+    def set_best_value(self, population, fitness):
+        self.best_fitness = max(fitness)
+        self.best_chromosome = list(population[fitness.index(self.best_fitness)])
+
+    def get_add_population(self, current_population, current_fitness, all_fitness):
+        parents = []
+        add_population = []
+
+        for i in range(self.pop_size):
+            parent_chromosome = self.roulette(current_fitness, all_fitness)
+            parents.append(current_population[parent_chromosome])
+
+        add_population = list(self.get_cross_chromosomes(parents))
+        return add_population
+
+    def get_cross_chromosomes(self, parents):
+        cross_population = []
+
+        for i in range(0, self.pop_size, 2):
+            parent_a = parents[random.randint(1, len(parents) - 1)]
+            parent_b = parents[random.randint(1, len(parents) - 1)]
+            cut_point = random.randint(1, self.cells_count)
+            ran_cross = random.random()
+            if ran_cross < self.cross_prob:
+                chromosome_ab = parent_a[:cut_point] + parent_b[cut_point:]
+                ran_mut = random.random()
+                if ran_mut < self.mut_prob:
+                    gene_position = random.randint(0, self.cells_count - 1)
+                    chromosome_ab = self.mutate_gene(chromosome_ab, gene_position)
+                cross_population.append(chromosome_ab)
+
+            ran_cross = random.random()
+            if ran_cross < self.cross_prob:
+                chromosome_ba = parent_b[:cut_point] + parent_a[cut_point:]
+                ran_mut = random.random()
+                if ran_mut < self.mut_prob:
+                    gene_position = random.randint(0, self.cells_count - 1)
+                    chromosome_ba = self.mutate_gene(chromosome_ba, gene_position)
+                cross_population.append(chromosome_ba)
+        return cross_population
+
+    def get_new_generation(self, first_population, second_population):
+        new_generation = []
+        first_population_fitness = []
+        second_population_fitness = []
+
+        for i in range(len(first_population)):
+            first_population_fitness.append(self.ffunc(first_population[i]))
+        for i in range(len(second_population)):
+            second_population_fitness.append(self.ffunc(second_population[i]))
+        for i in range(self.pop_size):
+            best_g1 = max(first_population_fitness) if len(first_population_fitness) > 0 else 0
+            best_g2 = max(second_population_fitness) if len(second_population_fitness) > 0 else 0
+            if best_g2 > best_g1:
+                chromosome_index = second_population_fitness.index(best_g2)
+                new_chromosome = second_population[chromosome_index]
+                new_generation.append(new_chromosome)
+                second_population.remove(new_chromosome)
+                second_population_fitness.remove(second_population_fitness[chromosome_index])
+            else:
+                chromosome_index = first_population_fitness.index(best_g1)
+                new_chromosome = first_population[chromosome_index]
+                new_generation.append(new_chromosome)
+                first_population.remove(new_chromosome)
+                first_population_fitness.remove(first_population_fitness[chromosome_index])
+        return new_generation
+
+    def roulette(self, values, fitness_sum):
+        random_point = random.random() * fitness_sum
+        cur_sum = 0
         i = 0
+
         for i in range(len(values)):
-            sum_fit += values[i]
-            if sum_fit >= n_rand:
+            cur_sum += values[i]
+            if cur_sum >= random_point:
                 break
         return i
 
-    def mutate(self, ind, pos):
-        if ind[pos] == 0:
-            ind[pos] = 1
-        elif ind[pos] == 1:
-            ind[pos] = 0
-        return ind
+    def mutate_gene(self, chromosome, pos):
+        if chromosome[pos] == 0:
+            chromosome[pos] = 1
+        elif chromosome[pos] == 1:
+            chromosome[pos] = 0
+        return chromosome
 
-    def ffunc(self, ind):
-        allx = []
-        ally = []
-        ms = 0
+    def ffunc(self, chromosome):
+        queens_x = []
+        queens_y = []
+        mistakes = 0
         fitness = 0
-        cont = 0
-        num = 8
-        for z in range(len(ind)):
-            if ind[z] == 1:
-                cont += 1
-                num -= 1
-                allx.append(z % 8)
-                ally.append(z // 8)
-        if cont > 1:
-            for x1 in range(0, cont - 1):
-                for x2 in range(x1 + 1, cont):
-                    if allx[x1] == allx[x2]:
-                        ms += 1
-                    if ally[x1] == ally[x2]:
-                        ms += 1
-                    if abs(allx[x2] - allx[x1]) == abs(ally[x2] - ally[x1]):
-                        ms += 1
-        ms += abs(num)
-        fitness = 1 / (1 + ms)
+        queens_number = 0
+        need_queens = 8
+
+        for i in range(len(chromosome)):
+            if chromosome[i] == 1:
+                queens_number += 1
+                need_queens -= 1
+                queens_x.append(i % 8)
+                queens_y.append(i // 8)
+        if queens_number > 1:
+            for x1 in range(0, queens_number - 1):
+                for x2 in range(x1 + 1, queens_number):
+                    if queens_x[x1] == queens_x[x2]:
+                        mistakes += 1
+                    if queens_y[x1] == queens_y[x2]:
+                        mistakes += 1
+                    if abs(queens_x[x2] - queens_x[x1]) == abs(queens_y[x2] - queens_y[x1]):
+                        mistakes += 1
+        mistakes += abs(need_queens)
+        fitness = 1 / (1 + mistakes)
         return fitness
+
+    def get_solution(self):
+        solution = list(self.best_chromosome)
+
+        for i in range(7):
+            solution.insert(i + 8 * (i + 1), '\n')
+        for i in range(len(solution)):
+            if solution[i] == 0:
+                solution[i] = '+'
+            elif solution[i] == 1:
+                solution[i] = 'Q'
+        solution = ''.join(solution)
+        return solution
