@@ -16,7 +16,6 @@ class Solver_8_queens:
         current_fitness = []
         all_fitness = 0
         add_population = []
-        new_population = []
 
         finding_solution = True
         epoch_num = 0
@@ -27,15 +26,12 @@ class Solver_8_queens:
 
         while finding_solution:
             epoch_num += 1
-            new_population.clear()
             add_population.clear()
 
             add_population = list(self.generate_chromosomes(self.pop_size // 2))
             add_population += self.get_add_population(current_population, current_fitness, all_fitness)
 
-            new_population = list(self.get_new_generation(current_population, add_population))
-
-            current_population = list(new_population)
+            current_population = list(self.get_new_generation(current_population, add_population))
             current_fitness.clear()
             all_fitness = 0
 
